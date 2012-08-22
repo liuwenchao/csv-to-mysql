@@ -19,7 +19,8 @@
  * @usage     php csv-to-mysql.php /path/to/file.csv /path/to/file.sql
  */
 
-ini_set('memory_limit', -1);
+ini_set('memory_limit',  -1);
+ini_set('date.timezone', 'America/New_York');
 
 if ($argc < 3)
 {
@@ -48,7 +49,7 @@ else
 
 	$types = array_fill(0, count($fields), array());;
 
-	foreach ($lines as $line)
+	foreach ($lines as $line_number => $line)
 	{
 		foreach ($line as $key => $value)
 		{
@@ -61,8 +62,12 @@ else
 					'unsigned' => $value > 0,
 				);
 			}
-			// @todo Detects DATETIME
 			// @todo Detects DECIMAL
+			// Detects DATETIME
+			elseif ($time = strtotime($value))
+			{
+				$type = array('type' => 'DATETIME');
+			}
 			// Fails over to VARCHAR
 			else
 			{
