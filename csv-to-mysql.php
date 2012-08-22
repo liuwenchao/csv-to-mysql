@@ -19,6 +19,52 @@
  * @usage     php csv-to-mysql.php /path/to/file.csv /path/to/file.sql
  */
 
-// @todo Stay calm and code on.
+if ($argc < 3)
+{
+	exit('Usage: php csv-to-mysql.php /path/to/file.csv /path/to/file.sql');
+}
+else
+{
+	$input = file_get_contents($argv[1]);
+	$lines = explode("\n", $input);
+
+	$fields = str_getcsv(array_shift($lines));
+	$types  = array_fill(0, count($fields), array());;
+
+	foreach ($lines as $line)
+	{
+		if (trim($line) != '')
+		{
+			$line = str_getcsv($line);
+
+			foreach ($line as $key => $value)
+			{
+				if (preg_match('/^[0-9]+$/', $value))
+				{
+					$type = array('type' => 'INT', 'size' => '1');
+
+					if ($value > 0)
+					{
+						$type['unsigned'] = true;
+					}
+				}
+				else
+				{
+					$type = array('type' => 'VARCHAR', 'size' => strlen($value));
+				}
+
+				if ($types[$key] != $type)
+				{
+					$types[$key] = $type;
+				}
+			}
+
+			print_r($types);
+			exit;
+		}
+	}
+
+	file_put_contents($argv[2], $sql);
+}
 
 ?>
