@@ -27,17 +27,31 @@ if ($argc < 3)
 }
 else
 {
-	$input = file_get_contents($argv[1]);
-	$lines = explode("\n", $input);
+	$lines = array();
 
-	$fields = str_getcsv(array_shift($lines));
-	$types  = array_fill(0, count($fields), array());;
+	if (($handle = fopen($argv[1], "r")) !== false)
+	{
+		while (($data = fgetcsv($handle, 0, ',')) !== false)
+		{
+			if (isset($fields))
+			{
+				$lines[] = $data;
+			}
+			else
+			{
+				$fields = $data;
+			}
+		}
+
+		fclose($handle);
+	}
+
+	$types = array_fill(0, count($fields), array());;
 
 	foreach ($lines as $line)
 	{
-		if (trim($line) != '')
+		//if (trim($line) != '')
 		{
-			$line = str_getcsv($line);
 
 			foreach ($line as $key => $value)
 			{
@@ -55,7 +69,6 @@ else
 				// Fails over to VARCHAR
 				else
 				{
-					// @todo If size is too large, use TEXT
 					$value_length = strlen($value);
 
 					if ($value_length == 0)
@@ -72,7 +85,7 @@ else
 				if ($types[$key] != $type)
 				{
 					// Type hasn't been set or new type is larger (bigger's better in this scenario)
-					if (!isset($types[$key]['size']) || $types[$key]['size'] < $type['size'])
+					if (!isset($types[$key]['size']) || (isset($type['size']) && $types[$key]['size'] < $type['size']))
 					{
 						$types[$key] = $type;
 					}
@@ -81,15 +94,29 @@ else
 		}
 	}
 
+	// Sniffs out any large VARCHAR and changes to TEXT
+	foreach ($types as $key => $type)
+	{
+		if ($type['type'] == 'VARCHAR' && $type['size'] > 1000)
+		{
+			$types[$key] = array('type' => 'TEXT');
+		}
+	}
+
 	$file_info  = pathinfo($argv[2]);
 	$table_name = basename($argv[2], '.' . $file_info['extension']);
 
-	$sql = 'CREATE TABLE `' . $table_name . '` (' . "\n";
+	$sql = 'DROP TABLE IF EXISTS `' . $table_name . '`;' . "\n\n" . 'CREATE TABLE `' . $table_name . '` (' . "\n";
 
 	foreach ($fields as $key => $field)
 	{
 		$type = $types[$key];
-		$sql .= "\t" . '`' . $field . '` ' . $type['type'] . '(' . $type['size'] . ')';
+		$sql .= "\t" . '`' . $field . '` ' . $type['type'];
+
+		if (isset($type['size']))
+		{
+			$sql .= '(' . $type['size'] . ')';
+		}
 
 		if (isset($type['unsigned']) && $type['unsigned'])
 		{
@@ -115,26 +142,21 @@ else
 
 	foreach ($lines as $line_number => $line)
 	{
-		if (trim($line) != '')
+		$sql = '';
+
+		if ($line_number > 0)
 		{
-			$sql = '';
-
-			if ($line_number > 0)
-			{
-				$sql .= ',' . "\n";
-			}
-
-			$line = str_getcsv($line);
-
-			foreach ($line as $key => $field)
-			{
-				$line[$key] = '"' . str_replace('"', '\"', $field) . '"';
-			}
-
-			$sql .= '(' . implode($line, ', ') . ')';
-
-			file_put_contents($argv[2], $sql, FILE_APPEND);
+			$sql .= ',' . "\n";
 		}
+
+		foreach ($line as $key => $field)
+		{
+			$line[$key] = '"' . str_replace('"', '\"', nl2br($field)) . '"';
+		}
+
+		$sql .= '(' . implode($line, ', ') . ')';
+
+		file_put_contents($argv[2], $sql, FILE_APPEND);
 	}
 
 	file_put_contents($argv[2], ';', FILE_APPEND);
