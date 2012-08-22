@@ -19,7 +19,7 @@
  * @usage     php csv-to-mysql.php /path/to/file.csv /path/to/file.sql
  */
 
-ini_set('memory_limit', '256M');
+ini_set('memory_limit', -1);
 
 if ($argc < 3)
 {
@@ -50,45 +50,41 @@ else
 
 	foreach ($lines as $line)
 	{
-		//if (trim($line) != '')
+		foreach ($line as $key => $value)
 		{
-
-			foreach ($line as $key => $value)
+			// Detects INT
+			if (preg_match('/^[0-9]+$/', $value))
 			{
-				// Detects INT
-				if (preg_match('/^[0-9]+$/', $value))
+				$type = array(
+					'type'     => 'INT',
+					'size'     => '1',
+					'unsigned' => $value > 0,
+				);
+			}
+			// @todo Detects DATETIME
+			// @todo Detects DECIMAL
+			// Fails over to VARCHAR
+			else
+			{
+				$value_length = strlen($value);
+
+				if ($value_length == 0)
 				{
-					$type = array(
-						'type'     => 'INT',
-						'size'     => '1',
-						'unsigned' => $value > 0,
-					);
+					$type = array('type' => 'CHAR', 'size' => '1');
 				}
-				// @todo Detects DATETIME
-				// @todo Detects DECIMAL
-				// Fails over to VARCHAR
 				else
 				{
-					$value_length = strlen($value);
-
-					if ($value_length == 0)
-					{
-						$type = array('type' => 'CHAR', 'size' => '1');
-					}
-					else
-					{
-						$type = array('type' => 'VARCHAR', 'size' => $value_length);
-					}
+					$type = array('type' => 'VARCHAR', 'size' => $value_length);
 				}
+			}
 
-				// Types don't match
-				if ($types[$key] != $type)
+			// Types don't match
+			if ($types[$key] != $type)
+			{
+				// Type hasn't been set or new type is larger (bigger's better in this scenario)
+				if (!isset($types[$key]['size']) || (isset($type['size']) && $types[$key]['size'] < $type['size']))
 				{
-					// Type hasn't been set or new type is larger (bigger's better in this scenario)
-					if (!isset($types[$key]['size']) || (isset($type['size']) && $types[$key]['size'] < $type['size']))
-					{
-						$types[$key] = $type;
-					}
+					$types[$key] = $type;
 				}
 			}
 		}
