@@ -53,7 +53,7 @@ else
 		foreach ($line as $key => $value)
 		{
 			// Detects INT
-			if (preg_match('/^[0-9]+$/', $value))
+			if (preg_match('/^-?[0-9]+$/', $value))
 			{
 				$type = array(
 					'type'     => 'INT',
