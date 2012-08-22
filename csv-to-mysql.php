@@ -62,7 +62,21 @@ else
 					'unsigned' => $value > 0,
 				);
 			}
-			// @todo Detects DECIMAL
+			// Detects DECIMAL
+			elseif (preg_match('/^-?[0-9]+\.([0-9])+$/', $value))
+			{
+				// This is to preserve 2 decimal points even when the
+				// post-decimal value is "00" as preg_match will only return
+				// "0" when passing in a "matches" array
+				$pieces = explode('.', $value);
+
+				$type = array(
+					'type'     => 'DECIMAL',
+					'size'     => strlen($pieces[0]),
+					'decimal'  => strlen($pieces[1]),
+					'unsigned' => $value > 0,
+				);
+			}
 			// Detects DATETIME
 			elseif ($time = strtotime($value))
 			{
@@ -86,10 +100,32 @@ else
 			// Types don't match
 			if ($types[$key] != $type)
 			{
-				// Type hasn't been set or new type is larger (bigger's better in this scenario)
-				if (!isset($types[$key]['size']) || (isset($type['size']) && $types[$key]['size'] < $type['size']))
+				// Checks both size variables and consolidates for DECIMAL
+				if (isset($type['size'], $type['decimal']))
 				{
-					$types[$key] = $type;
+					if ($types[$key] != array())
+					{
+						if ($type['size'] < $types[$key]['size'])
+						{
+							$type['size'] = $types[$key]['size'];
+						}
+
+						if ($type['decimal'] < $types[$key]['decimal'])
+						{
+							$type['decimal'] = $types[$key]['decimal'];
+						}
+					}
+
+					$type['size'] = $type['size'];
+					$types[$key]  = $type;
+				}
+				else
+				{
+					// Type hasn't been set or new type is larger (bigger's better in this scenario)
+					if (!isset($types[$key]['size']) || (isset($type['size']) && $types[$key]['size'] < $type['size']))
+					{
+						$types[$key] = $type;
+					}
 				}
 			}
 		}
@@ -114,9 +150,10 @@ else
 		$type = $types[$key];
 		$sql .= "\t" . '`' . $field . '` ' . $type['type'];
 
+
 		if (isset($type['size']))
 		{
-			$sql .= '(' . $type['size'] . ')';
+			$sql .= '(' . $type['size'] . (isset($type['decimal']) ? ', ' . $type['decimal'] : '') . ')';
 		}
 
 		if (isset($type['unsigned']) && $type['unsigned'])
