@@ -19,6 +19,8 @@
  * @usage     php csv-to-mysql.php /path/to/file.csv /path/to/file.sql
  */
 
+ini_set('memory_limit', '256M');
+
 if ($argc < 3)
 {
 	exit('Usage: php csv-to-mysql.php /path/to/file.csv /path/to/file.sql');
@@ -39,32 +41,103 @@ else
 
 			foreach ($line as $key => $value)
 			{
+				// Detects INT
 				if (preg_match('/^[0-9]+$/', $value))
 				{
-					$type = array('type' => 'INT', 'size' => '1');
-
-					if ($value > 0)
-					{
-						$type['unsigned'] = true;
-					}
+					$type = array(
+						'type'     => 'INT',
+						'size'     => '1',
+						'unsigned' => $value > 0,
+					);
 				}
+				// @todo Detects DATETIME
+				// @todo Detects DECIMAL
+				// Fails over to VARCHAR
 				else
 				{
-					$type = array('type' => 'VARCHAR', 'size' => strlen($value));
+					// @todo If size is too large, use TEXT
+					$value_length = strlen($value);
+
+					if ($value_length == 0)
+					{
+						$type = array('type' => 'CHAR', 'size' => '1');
+					}
+					else
+					{
+						$type = array('type' => 'VARCHAR', 'size' => $value_length);
+					}
 				}
 
+				// Types don't match
 				if ($types[$key] != $type)
 				{
-					$types[$key] = $type;
+					// Type hasn't been set or ew type is larger (bigger's better in this scenario)
+					if (!isset($types[$key]['size']) || $types[$key]['size'] < $type['size'])
+					{
+						$types[$key] = $type;
+					}
 				}
 			}
-
-			print_r($types);
-			exit;
 		}
 	}
 
+	$file_info  = pathinfo($argv[2]);
+	$table_name = basename($argv[2], '.' . $file_info['extension']);
+
+	$sql = 'CREATE TABLE `' . $table_name . '` (' . "\n";
+
+	foreach ($fields as $key => $field)
+	{
+		$type = $types[$key];
+		$sql .= "\t" . '`' . $field . '` ' . $type['type'] . '(' . $type['size'] . ')';
+
+		if (isset($type['unsigned']) && $type['unsigned'])
+		{
+			$sql .= ' unsigned';
+		}
+
+		// Assumes first field is the primary key
+		if ($key == 0)
+		{
+			$sql        .= ' NOT NULL AUTO_INCREMENT';
+			$primary_key = $field;
+		}
+
+		$sql .= ',' . "\n";
+	}
+
+	$sql .= "\t" . 'PRIMARY KEY (`' . $primary_key . '`)' . "\n";
+	$sql .= ') ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;' . "\n\n";
+
+	$sql .= 'INSERT INTO `' . $table_name . '` (' . implode($fields, ', ') . ') VALUES' . "\n";
+
 	file_put_contents($argv[2], $sql);
+
+	foreach ($lines as $line_number => $line)
+	{
+		if (trim($line) != '')
+		{
+			$sql = '';
+
+			if ($line_number > 0)
+			{
+				$sql .= ',' . "\n";
+			}
+
+			$line = str_getcsv($line);
+
+			foreach ($line as $key => $field)
+			{
+				$line[$key] = '"' . str_replace('"', '\"', $field) . '"';
+			}
+
+			$sql .= '(' . implode($line, ', ') . ')';
+
+			file_put_contents($argv[2], $sql, FILE_APPEND);
+		}
+	}
+
+	file_put_contents($argv[2], ';', FILE_APPEND);
 }
 
 ?>
