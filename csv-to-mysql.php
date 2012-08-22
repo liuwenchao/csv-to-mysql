@@ -89,7 +89,10 @@ else
 
 				if ($value_length == 0)
 				{
-					$type = array('type' => 'CHAR', 'size' => '1');
+					if (!isset($types[$key]['type']))
+					{
+						$type = array('type' => 'CHAR', 'size' => '1');
+					}
 				}
 				else
 				{
