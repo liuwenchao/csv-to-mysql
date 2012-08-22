@@ -71,7 +71,7 @@ else
 				// Types don't match
 				if ($types[$key] != $type)
 				{
-					// Type hasn't been set or ew type is larger (bigger's better in this scenario)
+					// Type hasn't been set or new type is larger (bigger's better in this scenario)
 					if (!isset($types[$key]['size']) || $types[$key]['size'] < $type['size'])
 					{
 						$types[$key] = $type;
