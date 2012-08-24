@@ -104,10 +104,18 @@ else
 			if ($types[$key] != $type)
 			{
 				// Checks both size variables and consolidates for DECIMAL
-				if (isset($type['size'], $type['decimal']))
+				if (isset($type['size'], $type['decimal'])
+					&& (!isset($types[$key]) || (isset($types[$key]) && $types[$key] == 'DECIMAL')))
 				{
 					if ($types[$key] != array())
 					{
+						if (!isset($types[$key]['decimal']))
+						{
+							print_r($type);
+							print_r($types[$key]);
+							var_dump($value);
+						}
+
 						if ($type['size'] < $types[$key]['size'])
 						{
 							$type['size'] = $types[$key]['size'];
