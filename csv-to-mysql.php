@@ -53,6 +53,8 @@ else
 	{
 		foreach ($line as $key => $value)
 		{
+			$type = false;
+
 			// Detects INT
 			if (preg_match('/^-?[0-9]+$/', $value))
 			{
@@ -111,13 +113,6 @@ else
 				{
 					if ($types[$key] != array())
 					{
-						if (!isset($types[$key]['decimal']))
-						{
-							print_r($type);
-							print_r($types[$key]);
-							var_dump($value);
-						}
-
 						if ($type['size'] < $types[$key]['size'])
 						{
 							$type['size'] = $types[$key]['size'];
