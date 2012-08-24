@@ -62,6 +62,7 @@ else
 					'unsigned' => $value > 0,
 				);
 			}
+			/*
 			// Detects DECIMAL
 			elseif (preg_match('/^-?[0-9]+\.([0-9])+$/', $value))
 			{
@@ -82,6 +83,7 @@ else
 			{
 				$type = array('type' => 'DATETIME');
 			}
+			*/
 			// Fails over to VARCHAR
 			else
 			{
