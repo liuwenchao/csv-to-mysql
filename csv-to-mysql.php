@@ -197,7 +197,7 @@ else
 
 		foreach ($line as $key => $field)
 		{
-			$line[$key] = '"' . str_replace('"', '\"', nl2br($field)) . '"';
+			$line[$key] = '"' . str_replace('"', '\"', $field) . '"';
 		}
 
 		$sql .= '(' . implode($line, ', ') . ')';
