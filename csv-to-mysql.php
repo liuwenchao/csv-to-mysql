@@ -40,7 +40,7 @@ else
 			}
 			else
 			{
-				$fields = array_map(function($v) {return strtolower(str_ireplace(array(' ', '?'), array('_', ''), $v));}, $data);
+				$fields = array_map(function($v) {return strtolower(str_ireplace(array(' ', '?', '/'), array('_', ''), $v));}, $data);
 			}
 		}
 
